@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import api from '../api';
 import { tokenUtils } from '../utils/token';
-import type { User } from '../api/types/user';
+import type { User, Pagination } from '../api/types/user';
 
 export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [inputPage, setInputPage] = useState('1');
   const [fetchingUsers, setFetchingUsers] = useState(false);
   const navigate = useNavigate();
 
@@ -22,14 +25,14 @@ export default function Users() {
     }
   }, [handleLogout]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async (page: number) => {
     setFetchingUsers(true);
     try {
-      const res = await api.user.getUsers();
+      const res = await api.user.getUsers(page, 5); // 固定一頁 5 筆
       setUsers(res.data);
+      setPagination(res.pagination);
     } catch (err: unknown) {
       console.error('Fetch users failed:', err);
-      // 若攔截器處理失敗 (如 refresh_token 也過期了)，最終會拋 401 錯誤到這裡
       if (axios.isAxiosError(err) && err.response?.status === 401) {
         alert('憑證已過期，請重新登入');
         handleLogout();
@@ -37,11 +40,47 @@ export default function Users() {
     } finally {
       setFetchingUsers(false);
     }
-  };
+  }, [handleLogout]);
+
+  // 當 currentPage 改變時自動獲取資料
+  useEffect(() => {
+    if (tokenUtils.getRefreshToken()) {
+      fetchUsers(currentPage);
+      setInputPage(currentPage.toString());
+    }
+  }, [currentPage, fetchUsers]);
 
   const simulateTokenExpire = () => {
     tokenUtils.clearAccessToken();
     alert('已清除記憶體中的 Access Token，下次請求將觸發 401 與自動 Refresh。');
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (pagination && newPage >= 1 && newPage <= pagination.total_pages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  const handleJumpPage = (e: React.FormEvent | React.FocusEvent) => {
+    e.preventDefault();
+    if (!pagination) return;
+    
+    // 驗證是否為純數字字串
+    if (!/^\d+$/.test(inputPage)) {
+      setInputPage(currentPage.toString());
+      return;
+    }
+
+    const pageNum = parseInt(inputPage, 10);
+    // 驗證範圍：需大於 0 且小於等於最大頁數 (符合 0-最大頁數 的合理範圍)
+    if (pageNum > 0 && pageNum <= pagination.total_pages) {
+      setCurrentPage(pageNum);
+      // 自動補齊格式（例如輸入 01 會變成 1）
+      setInputPage(pageNum.toString());
+    } else {
+      // 若輸入不合法或超過範圍，恢復為目前頁數
+      setInputPage(currentPage.toString());
+    }
   };
 
   return (
@@ -55,65 +94,126 @@ export default function Users() {
         </div>
 
         <div className="card bg-base-100 shadow-xl mb-8">
-          <div className="card-body">
-            <h2 className="card-title">操作與測試</h2>
-            <div className="flex flex-wrap gap-4 mt-4">
-              <button 
-                onClick={fetchUsers} 
-                className="btn btn-primary"
-                disabled={fetchingUsers}
-              >
-                {fetchingUsers && <span className="loading loading-spinner"></span>}
-                獲取最新名單
-              </button>
+          <div className="card-body flex-row justify-between items-center">
+            <div>
+              <h2 className="card-title mb-2">操作與測試</h2>
               <button 
                 onClick={simulateTokenExpire} 
-                className="btn btn-warning"
+                className="btn btn-warning btn-sm"
               >
                 模擬 Access Token 過期
               </button>
             </div>
+            <button 
+              onClick={() => fetchUsers(currentPage)} 
+              className="btn btn-primary"
+              disabled={fetchingUsers}
+            >
+              {fetchingUsers && <span className="loading loading-spinner"></span>}
+              重新整理名單
+            </button>
           </div>
         </div>
 
         {users.length > 0 ? (
-          <div className="overflow-x-auto bg-base-100 rounded-box shadow-xl">
-            <table className="table table-zebra w-full">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>頭像</th>
-                  <th>名稱</th>
-                  <th>信箱</th>
-                  <th>狀態</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id}>
-                    <td>{user.id}</td>
-                    <td>
-                      <div className="avatar">
-                        <div className="w-10 rounded-full">
-                          <img src={user.avatar} alt={user.name} />
-                        </div>
-                      </div>
-                    </td>
-                    <td>{user.name}</td>
-                    <td>{user.email}</td>
-                    <td>
-                      <div className="badge badge-success gap-2">
-                        {user.status}
-                      </div>
-                    </td>
+          <div className="bg-base-100 rounded-box shadow-xl overflow-hidden">
+            <div className="overflow-x-auto relative">
+              {fetchingUsers && (
+                <div className="absolute inset-0 bg-base-100/50 z-10 flex items-center justify-center">
+                  <span className="loading loading-spinner loading-lg text-primary"></span>
+                </div>
+              )}
+              <table className="table table-zebra w-full">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>頭像</th>
+                    <th>名稱</th>
+                    <th>信箱</th>
+                    <th>狀態</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {users.map((user) => (
+                    <tr key={user.id}>
+                      <td>{user.id}</td>
+                      <td>
+                        <div className="avatar">
+                          <div className="w-10 rounded-full">
+                            <img src={user.avatar} alt={user.name} />
+                          </div>
+                        </div>
+                      </td>
+                      <td>{user.name}</td>
+                      <td>{user.email}</td>
+                      <td>
+                        <div className="badge badge-success gap-2">
+                          {user.status}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 分頁控制區塊 */}
+            {pagination && (
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 border-t border-base-200 bg-base-50">
+                <span className="text-sm text-base-content/70">
+                  共 {pagination.total} 筆資料
+                </span>
+                
+                <form onSubmit={handleJumpPage} className="join items-center">
+                  <button 
+                    type="button"
+                    className="join-item btn btn-sm" 
+                    disabled={currentPage === 1 || fetchingUsers}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                  >
+                    上一頁
+                  </button>
+                  
+                  {/* 中間顯示目前頁數與輸入框 */}
+                  <div className="join-item flex items-center bg-base-100 px-3 text-sm h-8 border border-base-300 focus-within:outline focus-within:outline-2 focus-within:outline-primary/50 focus-within:-outline-offset-1">
+                    <span className="mr-2 text-base-content/70 hidden sm:inline">Page</span>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      max={pagination.total_pages}
+                      className="input input-ghost input-xs w-12 text-center p-0 h-6 bg-base-200 focus:bg-base-100 focus:outline-none" 
+                      value={inputPage}
+                      onChange={(e) => setInputPage(e.target.value)}
+                      onBlur={handleJumpPage}
+                      onFocus={(e) => e.target.select()}
+                      disabled={fetchingUsers}
+                    />
+                    <span className="ml-2 text-base-content/70 whitespace-nowrap">/ {pagination.total_pages}</span>
+                  </div>
+                  
+                  <button 
+                    type="button"
+                    className="join-item btn btn-sm" 
+                    disabled={currentPage === pagination.total_pages || fetchingUsers}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                  >
+                    下一頁
+                  </button>
+                  
+                  {/* 隱藏的 submit 讓 Enter 鍵可以送出表單 */}
+                  <button type="submit" className="hidden" disabled={fetchingUsers}>前往</button>
+                </form>
+              </div>
+            )}
           </div>
         ) : (
+
           <div className="text-center py-12 bg-base-100 rounded-box shadow-xl text-base-content/60">
-            請點擊「獲取最新名單」來載入資料
+            {fetchingUsers ? (
+               <span className="loading loading-spinner text-primary"></span>
+            ) : (
+              "目前沒有資料"
+            )}
           </div>
         )}
       </div>
