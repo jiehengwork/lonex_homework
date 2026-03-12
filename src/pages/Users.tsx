@@ -64,7 +64,7 @@ export default function Users() {
   const handleJumpPage = (e: React.FormEvent | React.FocusEvent) => {
     e.preventDefault();
     if (!pagination) return;
-    
+
     // 驗證是否為純數字字串
     if (!/^\d+$/.test(inputPage)) {
       setInputPage(currentPage.toString());
@@ -84,46 +84,40 @@ export default function Users() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200 p-8">
+    <div className="min-h-screen bg-base-200 sm:p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8 bg-base-100 p-4 rounded-box shadow-sm">
-          <h1 className="text-3xl font-bold">使用者管理</h1>
-          <button onClick={handleLogout} className="btn btn-outline btn-error">
-            登出
-          </button>
-        </div>
-
-        <div className="card bg-base-100 shadow-xl mb-8">
-          <div className="card-body flex-row justify-between items-center">
-            <div>
-              <h2 className="card-title mb-2">操作與測試</h2>
-              <button 
-                onClick={simulateTokenExpire} 
-                className="btn btn-warning btn-sm"
-              >
-                模擬 Access Token 過期
-              </button>
-            </div>
-            <button 
-              onClick={() => fetchUsers(currentPage)} 
-              className="btn btn-primary"
-              disabled={fetchingUsers}
-            >
-              {fetchingUsers && <span className="loading loading-spinner"></span>}
-              重新整理名單
-            </button>
-          </div>
-        </div>
 
         {users.length > 0 ? (
-          <div className="bg-base-100 rounded-box shadow-xl overflow-hidden">
-            <div className="overflow-x-auto relative">
+          <div className="bg-base-100 sm:rounded-box sm:shadow-xl overflow-hidden mt-0 sm:mt-4">
+            
+            {/* Toolbar 區塊 */}
+            <div className="p-4 border-b border-base-200 bg-base-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <h2 className="text-xl font-bold">使用者列表</h2>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <button 
+                  onClick={simulateTokenExpire} 
+                  className="btn btn-outline btn-error btn-sm flex-1 sm:flex-none"
+                >
+                  模擬 Token 過期
+                </button>
+                <button 
+                  onClick={() => fetchUsers(currentPage)} 
+                  className="btn btn-neutral btn-sm flex-1 sm:flex-none"
+                  disabled={fetchingUsers}
+                >
+                  {fetchingUsers && <span className="loading loading-spinner"></span>}
+                  重新整理
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto relative min-h-[300px]">
               {fetchingUsers && (
                 <div className="absolute inset-0 bg-base-100/50 z-10 flex items-center justify-center">
                   <span className="loading loading-spinner loading-lg text-primary"></span>
                 </div>
               )}
-              <table className="table table-zebra w-full">
+              <table className="table table-sm sm:table-md table-zebra w-full">
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -139,15 +133,15 @@ export default function Users() {
                       <td>{user.id}</td>
                       <td>
                         <div className="avatar">
-                          <div className="w-10 rounded-full">
+                          <div className="w-8 sm:w-10 rounded-full">
                             <img src={user.avatar} alt={user.name} />
                           </div>
                         </div>
                       </td>
-                      <td>{user.name}</td>
-                      <td>{user.email}</td>
+                      <td className="font-medium">{user.name}</td>
+                      <td className="text-xs sm:text-sm">{user.email}</td>
                       <td>
-                        <div className="badge badge-success gap-2">
+                        <div className="badge badge-sm sm:badge-md badge-success gap-2">
                           {user.status}
                         </div>
                       </td>
@@ -160,46 +154,46 @@ export default function Users() {
             {/* 分頁控制區塊 */}
             {pagination && (
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 border-t border-base-200 bg-base-50">
-                <span className="text-sm text-base-content/70">
+                <span className="text-xs sm:text-sm text-base-content/70">
                   共 {pagination.total} 筆資料
                 </span>
-                
-                <form onSubmit={handleJumpPage} className="join items-center">
+
+                <form onSubmit={handleJumpPage} className="join items-center justify-center w-full sm:w-auto">
                   <button 
                     type="button"
-                    className="join-item btn btn-sm" 
+                    className="join-item btn btn-sm sm:btn-md btn-neutral" 
                     disabled={currentPage === 1 || fetchingUsers}
                     onClick={() => handlePageChange(currentPage - 1)}
                   >
                     上一頁
                   </button>
-                  
+
                   {/* 中間顯示目前頁數與輸入框 */}
-                  <div className="join-item flex items-center bg-base-100 px-3 text-sm h-8 border border-base-300 focus-within:outline focus-within:outline-2 focus-within:outline-primary/50 focus-within:-outline-offset-1">
-                    <span className="mr-2 text-base-content/70 hidden sm:inline">Page</span>
+                  <div className="join-item flex items-center justify-center bg-base-100 px-2 sm:px-3 text-sm h-8 sm:h-12 border border-base-300 focus-within:outline focus-within:outline-2 focus-within:outline-primary/50 focus-within:-outline-offset-1">
+                    <span className="mr-1 sm:mr-2 text-base-content/70 hidden md:inline">Page</span>
                     <input 
                       type="number" 
                       min="1" 
                       max={pagination.total_pages}
-                      className="input input-ghost input-xs w-12 text-center p-0 h-6 bg-base-200 focus:bg-base-100 focus:outline-none" 
+                      className="input input-ghost input-xs sm:input-sm w-10 sm:w-12 text-center p-0 h-6 sm:h-8 bg-base-200 focus:bg-base-100 focus:outline-none" 
                       value={inputPage}
                       onChange={(e) => setInputPage(e.target.value)}
                       onBlur={handleJumpPage}
                       onFocus={(e) => e.target.select()}
                       disabled={fetchingUsers}
                     />
-                    <span className="ml-2 text-base-content/70 whitespace-nowrap">/ {pagination.total_pages}</span>
+                    <span className="ml-1 sm:ml-2 text-base-content/70 whitespace-nowrap">/ {pagination.total_pages}</span>
                   </div>
-                  
+
                   <button 
                     type="button"
-                    className="join-item btn btn-sm" 
+                    className="join-item btn btn-sm sm:btn-md btn-neutral" 
                     disabled={currentPage === pagination.total_pages || fetchingUsers}
                     onClick={() => handlePageChange(currentPage + 1)}
                   >
                     下一頁
                   </button>
-                  
+
                   {/* 隱藏的 submit 讓 Enter 鍵可以送出表單 */}
                   <button type="submit" className="hidden" disabled={fetchingUsers}>前往</button>
                 </form>
@@ -207,8 +201,7 @@ export default function Users() {
             )}
           </div>
         ) : (
-
-          <div className="text-center py-12 bg-base-100 rounded-box shadow-xl text-base-content/60">
+          <div className="text-center py-12 bg-base-100 sm:rounded-box sm:shadow-xl text-base-content/60 mt-0 sm:mt-4">
             {fetchingUsers ? (
                <span className="loading loading-spinner text-primary"></span>
             ) : (
@@ -220,3 +213,4 @@ export default function Users() {
     </div>
   );
 }
+

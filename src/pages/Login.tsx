@@ -43,13 +43,13 @@ export default function Login() {
   };
 
   return (
-    <div className="hero min-h-screen bg-base-200">
+    <div className="hero min-h-screen bg-base-200 px-4 sm:px-0">
       <div className="hero-content flex-col w-full max-w-md">
-        <div className="text-center mb-6">
-          <h1 className="text-4xl font-bold">登入帳號</h1>
+        <div className="text-center mb-4 sm:mb-6">
+          <h1 className="text-3xl sm:text-4xl font-bold">登入帳號</h1>
         </div>
         <div className="card flex-shrink-0 w-full shadow-2xl bg-base-100">
-          <form className="card-body" onSubmit={handleLogin}>
+          <form className="card-body p-6 sm:p-8" onSubmit={handleLogin}>
             <div className="form-control">
               <label className="label">
                 <span className="label-text">帳號 (Username)</span>
@@ -78,7 +78,7 @@ export default function Login() {
             </div>
             
             {error && (
-              <div className="alert alert-error shadow-lg mt-4 text-sm p-2">
+              <div className="alert alert-error shadow-lg mt-4 text-sm p-3">
                 <span>{error}</span>
               </div>
             )}
@@ -86,7 +86,7 @@ export default function Login() {
             <div className="form-control mt-6">
               <button 
                 type="submit" 
-                className="btn btn-primary"
+                className="btn btn-primary w-full"
                 disabled={loading}
               >
                 {loading && <span className="loading loading-spinner"></span>}
