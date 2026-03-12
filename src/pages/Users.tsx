@@ -4,6 +4,7 @@ import axios from 'axios';
 import api from '../api';
 import { tokenUtils } from '../utils/token';
 import type { User, Pagination } from '../api/types/user';
+import { showToast } from '../utils/toast';
 
 export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
@@ -34,8 +35,11 @@ export default function Users() {
     } catch (err: unknown) {
       console.error('Fetch users failed:', err);
       if (axios.isAxiosError(err) && err.response?.status === 401) {
-        alert('憑證已過期，請重新登入');
+        showToast('憑證已過期，請重新登入', 'warning');
         handleLogout();
+      } else {
+        // 遇到非 401 錯誤，統一顯示 IT 聯繫訊息，不拋出後端原始錯誤
+        showToast('系統發生錯誤，請聯繫 IT 人員。', 'error');
       }
     } finally {
       setFetchingUsers(false);
@@ -52,7 +56,12 @@ export default function Users() {
 
   const simulateTokenExpire = () => {
     tokenUtils.clearAccessToken();
-    alert('已清除記憶體中的 Access Token，下次請求將觸發 401 與自動 Refresh。');
+    showToast('已清除記憶體中的 Access Token，下次請求將觸發 401 與自動 Refresh。', 'info');
+  };
+
+  const simulateApiError = () => {
+    // 傳入 page=0 來觸發後端錯誤
+    fetchUsers(0);
   };
 
   const handlePageChange = (newPage: number) => {
@@ -93,12 +102,19 @@ export default function Users() {
             {/* Toolbar 區塊 */}
             <div className="p-4 border-b border-base-200 bg-base-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h2 className="text-xl font-bold">使用者列表</h2>
-              <div className="flex gap-2 w-full sm:w-auto">
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                 <button 
                   onClick={simulateTokenExpire} 
-                  className="btn btn-outline btn-error btn-sm flex-1 sm:flex-none"
+                  className="btn btn-outline btn-warning btn-sm flex-1 sm:flex-none"
                 >
                   模擬 Token 過期
+                </button>
+                <button 
+                  onClick={simulateApiError} 
+                  className="btn btn-outline btn-error btn-sm flex-1 sm:flex-none"
+                  disabled={fetchingUsers}
+                >
+                  模擬 API 錯誤
                 </button>
                 <button 
                   onClick={() => fetchUsers(currentPage)} 

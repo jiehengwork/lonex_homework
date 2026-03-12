@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import api from '../api';
 import { tokenUtils } from '../utils/token';
+import { showToast } from '../utils/toast';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -32,10 +33,13 @@ export default function Login() {
       // 登入成功後跳轉至使用者列表
       navigate('/users');
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || '登入失敗，請檢查帳號密碼。');
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        // 401 屬於預期的使用者行為錯誤，保留在畫面上的紅色小框框提示
+        setError('登入失敗，請檢查帳號密碼。');
       } else {
-        setError('發生未知的錯誤。');
+        // 遇到非 401 的後端錯誤或網路錯誤，不顯示後端原始訊息，統一用 Toast 提示
+        showToast('系統發生錯誤，請聯繫 IT 人員。', 'error');
+        setError(''); // 清空原本可能有的表單錯誤
       }
     } finally {
       setLoading(false);
